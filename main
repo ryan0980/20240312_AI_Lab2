@@ -1,6 +1,6 @@
 import math
 
-landscape_areas = []  # Replace with your landscape areas
+landscape_blocks = []  # Replace with your landscape blocks
 path = []
 tiles = {}  # Tile types and their quantities
 targets = {}  # Target counts for each bush type
@@ -90,8 +90,8 @@ class CSP:
     def __init__(self):
         self.Solution = []
         self.TwoD_Land = []
-        self.tiles = {}
-        self.target = {}
+        self.tiles = {}  # Tile types and their quantities
+        self.target = {}  # Target counts for each bush type
 
     def read_tiles_problem(self, file_path):
         landscape = []
@@ -144,13 +144,11 @@ class CSP:
         land = []
         for i in range(0, len(maze), 4):
             for j in range(0, len(maze[0]), 4):
-                area = [row[j : j + 4] for row in maze[i : i + 4]]
-                land.append(area)
-        land.pop()
-        land.pop()
-        land.pop()
-        land.pop()
-        land.pop()
+                block = [row[j : j + 4] for row in maze[i : i + 4]]
+                land.append(block)
+        for _ in range(5):
+            land.pop()
+
         """
         print("land:", land)
         print(land == self.TwoD_Land)
@@ -158,63 +156,59 @@ class CSP:
         print(type(land[0][0][0]))
         """
         self.TwoD_Land = land
-
         self.tiles = tiles
         self.target = targets
 
         # self.TwoD_Land = split_into_4x4_blocks(landscape)
 
-    def Full_block(self, area):
+    def Full_block(self, block):
         return {1: 0, 2: 0, 3: 0, 4: 0}
 
-    def Outer_block(self, area):
+    def Outer_block(self, block):
 
         result = {bush_type: 0 for bush_type in range(1, 5)}
 
-        central_portion = [row[1:3] for row in area[1:3]]
+        central_portion = [row[1:3] for row in block[1:3]]
 
         for bush_type in result.keys():
             result[bush_type] = sum(row.count(bush_type) for row in central_portion)
 
         return result
 
-    def calculate_L_shape(self, area, mode):
-        # Initialize the result dictionary with bush types as keys and 0 as values.
+    def calculate_L_shape(self, block, mode):
+
         result = {bush_type: 0 for bush_type in range(1, 5)}
 
-        # Depending on the mode, slice the area to get the relevant portion.
         if mode == 1:
-            relevant_portion = [row[1:] for row in area[:-1]]
+            relevant_portion = [row[1:] for row in block[:-1]]
         elif mode == 2:
-            relevant_portion = [row[1:] for row in area[1:]]
+            relevant_portion = [row[1:] for row in block[1:]]
         elif mode == 3:
-            relevant_portion = [row[:-1] for row in area[:-1]]
+            relevant_portion = [row[:-1] for row in block[:-1]]
         elif mode == 4:
-            relevant_portion = [row[:-1] for row in area[1:]]
+            relevant_portion = [row[:-1] for row in block[1:]]
         else:
             raise ValueError("Invalid mode for L-shape calculation.")
 
-        # Sum the occurrences of each bush type in the relevant portion.
         for bush_type in result:
             result[bush_type] = sum(row.count(bush_type) for row in relevant_portion)
 
         return result
 
-    # Smaller functions to call the main L_shape calculation with the specific mode.
-    def L_shape_1(self, area):
-        return self.calculate_L_shape(area, 1)
+    def L_shape_1(self, block):
+        return self.calculate_L_shape(block, 1)
 
-    def L_shape_2(self, area):
-        return self.calculate_L_shape(area, 2)
+    def L_shape_2(self, block):
+        return self.calculate_L_shape(block, 2)
 
-    def L_shape_3(self, area):
-        return self.calculate_L_shape(area, 3)
+    def L_shape_3(self, block):
+        return self.calculate_L_shape(block, 3)
 
-    def L_shape_4(self, area):
-        return self.calculate_L_shape(area, 4)
+    def L_shape_4(self, block):
+        return self.calculate_L_shape(block, 4)
 
-    def apply(self, func, area):
-        return func(area)
+    def apply(self, func, block):
+        return func(block)
 
     def check(self, current_state, path):
         # 计算每种瓷砖使用的次数
@@ -230,7 +224,7 @@ class CSP:
                 count_outer_blocks > self.tiles["OUTER_BOUNDARY"],
             ]
         ):
-            return "used too many tiles"
+            return 2
 
         # 计算与目标状态的差异
         differences = {
@@ -239,20 +233,19 @@ class CSP:
 
         # 检查是否达到目标状态
         if all(diff == 0 for diff in differences.values()):
-            return "end"
+            return 1
 
         # 检查是否有过多的灌木丛被揭露
         if any(diff < 0 for diff in differences.values()):
-            return "too many visible bushes"
+            return 2
 
-        # 未触发任何返回条件
         return None
 
     def csp_with_MRV(self, current_index, current_bush_counts, tile_functions):
 
         if current_index == len(self.TwoD_Land):
 
-            return self.check(current_bush_counts, self.Solution) == "end"
+            return self.check(current_bush_counts, self.Solution) == 1
         sorted_functions = sorted(
             tile_functions,
             key=lambda func: sum(
@@ -264,15 +257,15 @@ class CSP:
 
             self.Solution.append(function.__name__)
 
-            area_result = self.apply(function, self.TwoD_Land[current_index])
+            block_result = self.apply(function, self.TwoD_Land[current_index])
 
             updated_counts = {
-                bush: current_bush_counts.get(bush, 0) + area_result.get(bush, 0)
-                for bush in area_result
+                bush: current_bush_counts.get(bush, 0) + block_result.get(bush, 0)
+                for bush in block_result
             }
 
             validation_result = self.check(updated_counts, self.Solution)
-            if validation_result in ["too many visible bushes", "used too many tiles"]:
+            if validation_result == 2:
 
                 self.Solution.pop()
                 continue
@@ -286,60 +279,62 @@ class CSP:
         return False
 
     def apply_path_to_landscape(self):
-
         def reset_matrix():
             return [[-1] * 4 for _ in range(4)]
 
-        def copy_inner(source, dest, pattern):
-            patterns = {
-                "outer_block": ((1, -1), (1, -1)),
-                "L_shape_1": ((None, -1), (1, None)),
-                "L_shape_2": ((1, None), (1, None)),
-                "L_shape_3": ((None, -1), (None, -1)),
-                "L_shape_4": ((1, None), (None, -1)),
+        def apply_pattern(source, pattern):
+
+            pattern_areas = {
+                "Full_block": (
+                    None,
+                    None,
+                    None,
+                    None,
+                ),
+                "Outer_block": (1, 3, 1, 3),
+                "L_shape_1": (0, 3, 1, 4),
+                "L_shape_2": (1, 4, 1, 4),
+                "L_shape_3": (0, 3, 0, 3),
+                "L_shape_4": (1, 4, 0, 3),
             }
-            if pattern not in patterns:
-                raise ValueError(f"Pattern {pattern} is not recognized.")
 
-            row_slice, col_slice = patterns[pattern]
-            for row_index, row in enumerate(source[row_slice[0] : row_slice[1]]):
-                dest[row_index + (1 if row_slice[0] == 1 else 0)][
-                    col_slice[0] : col_slice[1]
-                ] = row[col_slice[0] : col_slice[1]]
+            row_start, row_end, col_start, col_end = pattern_areas[pattern]
+            row_end = None if row_end == 4 else row_end
+            col_end = None if col_end == 4 else col_end
 
-        def calculate_bushes():
+            new_block = reset_matrix()
+            if pattern != "Full_block":
+                for row_index, row in enumerate(source[row_start:row_end]):
+                    dest_row_index = row_index + row_start
+                    new_block[dest_row_index][col_start:col_end] = row[
+                        col_start:col_end
+                    ]
+            return new_block
 
-            bush_counts = {1: 0, 2: 0, 3: 0, 4: 0}
-            for block in self.TwoD_Land:
-                for row in block:
-                    for bush_type in bush_counts.keys():
-                        bush_counts[bush_type] += row.count(bush_type)
+        def calculate_bushes(block):
+            bush_counts = {
+                bush_type: sum(row.count(bush_type) for row in block)
+                for bush_type in range(1, 5)
+            }
             return bush_counts
 
-        for index, block_type in enumerate(self.Solution):
-            temp = reset_matrix()
+        updated_land = [
+            apply_pattern(block, pattern)
+            for block, pattern in zip(self.TwoD_Land, self.Solution)
+        ]
+        bush_counts = [calculate_bushes(block) for block in updated_land]
 
-            if block_type == "Full_block":
-                self.TwoD_Land[index] = temp
-            elif block_type == "Outer_block":
-                copy_inner(self.TwoD_Land[index], temp, "outer_block")
-                self.TwoD_Land[index] = temp
-            elif block_type in ["L_shape_1", "L_shape_2", "L_shape_3", "L_shape_4"]:
-                copy_inner(self.TwoD_Land[index], temp, block_type)
-                self.TwoD_Land[index] = temp
-            else:
-                raise ValueError("Invalid block type")
-
-        return calculate_bushes()
+        self.TwoD_Land = updated_land
+        return bush_counts
 
 
-def print_landscape_with_blocks(landscape_areas):
+def print_landscape_with_blocks(landscape_blocks):
 
-    blocks_per_row = int(math.sqrt(len(landscape_areas)))
-    for i in range(0, len(landscape_areas), blocks_per_row):
+    blocks_per_row = int(math.sqrt(len(landscape_blocks)))
+    for i in range(0, len(landscape_blocks), blocks_per_row):
         for row in range(4):
             for block_index in range(i, i + blocks_per_row):
-                block = landscape_areas[block_index]
+                block = landscape_blocks[block_index]
 
                 print(
                     " ".join(str(cell if cell != -1 else 0) for cell in block[row]),
@@ -350,7 +345,12 @@ def print_landscape_with_blocks(landscape_areas):
 
 
 constraint_solver = CSP()
-file_path = "tile2.txt"
+"""
+tile1.txt
+tile2.txt
+tilesproblem_1326658931783100.txt
+"""
+file_path = "tile1.txt"
 problem = read_tiles_problem(file_path)
 
 landscape = convert_landscape_to_2d_array(problem["landscape"])
@@ -363,7 +363,7 @@ for row in landscape:
 
 tiles = problem["tiles"]
 targets = problem["targets"]
-print(tiles, targets)
+print(problem)
 
 tile_functions = [
     getattr(constraint_solver, "L_shape_" + str(i)) for i in range(1, 5)
@@ -383,6 +383,6 @@ if result:
     constraint_solver.apply_path_to_landscape()
     print_landscape_with_blocks(constraint_solver.TwoD_Land)
 
-    # print_blocks(constraint_solver.landscape_areas)
+    # print_blocks(constraint_solver.landscape_blocks)
 else:
     print("No path found.\n")
