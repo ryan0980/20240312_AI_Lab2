@@ -48,8 +48,6 @@ def read_tiles_problem(file_path):
         "targets": targets,
         "solution": solution,
     }
-
-
 def convert_landscape_to_2d_array(landscape):
     max_length = max(((len(line) + 1) // 2 for line in landscape), default=0)
 
