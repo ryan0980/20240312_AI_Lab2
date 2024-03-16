@@ -381,7 +381,7 @@ if result:
     print("Solution:")
     print(constraint_solver.Solution, "\n")
     constraint_solver.apply_path_to_landscape()
-    print_landscape_with_blocks(constraint_solver.TwoD_Land)
+    #print_landscape_with_blocks(constraint_solver.TwoD_Land)
 
     # print_blocks(constraint_solver.landscape_blocks)
 else:
