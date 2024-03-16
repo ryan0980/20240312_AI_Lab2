@@ -110,16 +110,18 @@ class CSP:
                     section_number += 1
                     continue
 
-                if section_number == 2:  # Landscape
+                if section_number == 2:  # Landscap
                     landscape.append(line)
                     Line_Num += 1
-                    lin = list(line)[:-1]
-                    lin = list(map(lambda x: x.replace(" ", "0"), lin))
-                    lin = list(map(lambda x: int(x), lin))
-                    lin = [ele for idx, ele in enumerate(lin) if idx % 2 == 0]
-                    maze.append(lin)
-                    if Line_Num > len(lin) - 1:
+    
+                    processed_line = [int(char.replace(" ", "0")) for char in line[:-1]]
+                    processed_line = processed_line[::2]
+    
+                    maze.append(processed_line)
+    
+                    if Line_Num > len(processed_line) - 1:
                         pass
+
 
                 elif section_number == 3:  # Tiles
                     pairs = line_striped.split(", ")
