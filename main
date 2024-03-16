@@ -379,10 +379,16 @@ result = constraint_solver.csp_with_MRV(
 if result:
     print(f"\nTarget: {constraint_solver.target}\n")
     print("Solution:")
-    print(constraint_solver.Solution, "\n")
+    print(constraint_solver.Solution, "path\n")
     constraint_solver.apply_path_to_landscape()
-    #print_landscape_with_blocks(constraint_solver.TwoD_Land)
+    
 
-    # print_blocks(constraint_solver.landscape_blocks)
+
+
+
+
+
+#printprintnt_solver.landprinter 
+#rintprintprintprint_blocks(constraint_solver.landscape_bloclandsprin
 else:
     print("No path found.\n")
