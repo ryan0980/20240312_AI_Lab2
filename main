@@ -377,8 +377,8 @@ result = constraint_solver.csp_with_MRV(
     0, dict.fromkeys([1, 2, 3, 4], 0), tile_functions
 )
 if result:
-    print(f"\nTarget: {constraint_solver.target}\n")
-    print("Solution:")
+
+    
     print(constraint_solver.Solution, "path\n")
     constraint_solver.apply_path_to_landscape()
     
