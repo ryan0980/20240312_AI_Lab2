@@ -160,6 +160,16 @@ class CSP:
         self.target = targets
 
         # self.TwoD_Land = split_into_4x4_blocks(landscape)
+    def print_solution_tiles(self,Solution):
+        n = int(len(Solution) ** 0.5)  
+        for i in range(n):
+            for j in range(n):
+                tile_index = i * n + j
+                if tile_index < len(Solution):
+                    print(f"{Solution[tile_index]:<15}", end="")
+                else:
+                    print(" " * 15, end="")
+            print()
 
     def Full_block(self, block):
         return {1: 0, 2: 0, 3: 0, 4: 0}
@@ -326,6 +336,7 @@ class CSP:
 
         self.TwoD_Land = updated_land
         return bush_counts
+    
 
 
 def print_landscape_with_blocks(landscape_blocks):
@@ -372,23 +383,18 @@ tile_functions = [
 
 constraint_solver.read_tiles_problem(file_path)
 
+bush_counts = {}
+for key in [1, 2, 3, 4]:
+    bush_counts[key] = 0
+
+
+
 
 result = constraint_solver.csp_with_MRV(
-    0, dict.fromkeys([1, 2, 3, 4], 0), tile_functions
+    0, bush_counts, tile_functions
 )
-if result:
-
-    
-    print(constraint_solver.Solution, "path\n")
-    constraint_solver.apply_path_to_landscape()
-    
-
-
-
-
-
+constraint_solver.print_solution_tiles(constraint_solver.Solution)
 
 #printprintnt_solver.landprinter 
 #rintprintprintprint_blocks(constraint_solver.landscape_bloclandsprin
-else:
-    print("No path found.\n")
+
