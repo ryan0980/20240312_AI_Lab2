@@ -48,6 +48,8 @@ def read_tiles_problem(file_path):
         "targets": targets,
         "solution": solution,
     }
+
+
 def convert_landscape_to_2d_array(landscape):
     max_length = max(((len(line) + 1) // 2 for line in landscape), default=0)
 
@@ -111,15 +113,14 @@ class CSP:
                 if section_number == 2:  # Landscap
                     landscape.append(line)
                     Line_Num += 1
-    
+
                     processed_line = [int(char.replace(" ", "0")) for char in line[:-1]]
                     processed_line = processed_line[::2]
-    
+
                     maze.append(processed_line)
-    
+
                     if Line_Num > len(processed_line) - 1:
                         pass
-
 
                 elif section_number == 3:  # Tiles
                     pairs = line_striped.split(", ")
@@ -160,8 +161,9 @@ class CSP:
         self.target = targets
 
         # self.TwoD_Land = split_into_4x4_blocks(landscape)
-    def print_solution_tiles(self,Solution):
-        n = int(len(Solution) ** 0.5)  
+
+    def print_solution_tiles(self, Solution):
+        n = int(len(Solution) ** 0.5)
         for i in range(n):
             for j in range(n):
                 tile_index = i * n + j
@@ -171,10 +173,10 @@ class CSP:
                     print(" " * 15, end="")
             print()
 
-    def Full_block(self, block):
+    def Full_B(self, block):
         return {1: 0, 2: 0, 3: 0, 4: 0}
 
-    def Outer_block(self, block):
+    def Outer_B(self, block):
 
         result = {bush_type: 0 for bush_type in range(1, 5)}
 
@@ -185,7 +187,7 @@ class CSP:
 
         return result
 
-    def calculate_L_shape(self, block, mode):
+    def L_shape_B(self, block, mode):
 
         result = {bush_type: 0 for bush_type in range(1, 5)}
 
@@ -197,8 +199,6 @@ class CSP:
             relevant_portion = [row[:-1] for row in block[:-1]]
         elif mode == 4:
             relevant_portion = [row[:-1] for row in block[1:]]
-        else:
-            raise ValueError("Invalid mode for L-shape calculation.")
 
         for bush_type in result:
             result[bush_type] = sum(row.count(bush_type) for row in relevant_portion)
@@ -206,27 +206,28 @@ class CSP:
         return result
 
     def L_shape_1(self, block):
-        return self.calculate_L_shape(block, 1)
+        return self.L_shape_B(block, 1)
 
     def L_shape_2(self, block):
-        return self.calculate_L_shape(block, 2)
+        return self.L_shape_B(block, 2)
 
     def L_shape_3(self, block):
-        return self.calculate_L_shape(block, 3)
+        return self.L_shape_B(block, 3)
 
     def L_shape_4(self, block):
-        return self.calculate_L_shape(block, 4)
+        return self.L_shape_B(block, 4)
 
     def apply(self, func, block):
         return func(block)
 
     def check(self, current_state, path):
-        # 计算每种瓷砖使用的次数
-        count_L_shapes = sum(path.count(f"L_shape_{i}") for i in range(1, 5))
+
+        count_L_shapes = sum(
+            path.count(f"L_shape_{i}") for i in range(1, 5)
+        )  # all kinds of L shape
         count_full_blocks = path.count("Full_block")
         count_outer_blocks = path.count("Outer_block")
 
-        # 检查瓷砖使用量是否超标
         if any(
             [
                 count_L_shapes > self.tiles["EL_SHAPE"],
@@ -236,22 +237,19 @@ class CSP:
         ):
             return 2
 
-        # 计算与目标状态的差异
         differences = {
             key: self.target[key] - current_state.get(key, 0) for key in self.target
         }
 
-        # 检查是否达到目标状态
         if all(diff == 0 for diff in differences.values()):
             return 1
 
-        # 检查是否有过多的灌木丛被揭露
         if any(diff < 0 for diff in differences.values()):
             return 2
 
         return None
 
-    def csp_with_MRV(self, current_index, current_bush_counts, tile_functions):
+    def CSP(self, current_index, current_bush_counts, tile_functions):
 
         if current_index == len(self.TwoD_Land):
 
@@ -280,7 +278,7 @@ class CSP:
                 self.Solution.pop()
                 continue
 
-            if self.csp_with_MRV(current_index + 1, updated_counts, tile_functions):
+            if self.CSP(current_index + 1, updated_counts, tile_functions):
                 return True
             else:
 
@@ -288,17 +286,48 @@ class CSP:
 
         return False
 
-    def apply_path_to_landscape(self):
+    def LandScape_Path(self):
         def reset_matrix():
             return [[-1] * 4 for _ in range(4)]
+
         def apply_pattern(block, pattern):
             pattern_actions = {
                 "Full_block": lambda b: [[1 for _ in row] for row in b],
-                "Outer_block": lambda b: [[1 if (i == 0 or i == 3 or j == 0 or j == 3) else b[i][j] for j in range(4)] for i in range(4)],
-                "L_shape_1": lambda b: [[1 if (i < 3 and j == 0) or (i == 2 and j < 3) else b[i][j] for j in range(4)] for i in range(4)],
-                "L_shape_2": lambda b: [[1 if (i < 3 and j == 3) or (i == 2 and j > 0) else b[i][j] for j in range(4)] for i in range(4)],
-                "L_shape_3": lambda b: [[1 if (i > 0 and j == 0) or (i == 1 and j < 3) else b[i][j] for j in range(4)] for i in range(4)],
-                "L_shape_4": lambda b: [[1 if (i > 0 and j == 3) or (i == 1 and j > 0) else b[i][j] for j in range(4)] for i in range(4)],
+                "Outer_block": lambda b: [
+                    [
+                        1 if (i == 0 or i == 3 or j == 0 or j == 3) else b[i][j]
+                        for j in range(4)
+                    ]
+                    for i in range(4)
+                ],
+                "L_shape_1": lambda b: [
+                    [
+                        1 if (i < 3 and j == 0) or (i == 2 and j < 3) else b[i][j]
+                        for j in range(4)
+                    ]
+                    for i in range(4)
+                ],
+                "L_shape_2": lambda b: [
+                    [
+                        1 if (i < 3 and j == 3) or (i == 2 and j > 0) else b[i][j]
+                        for j in range(4)
+                    ]
+                    for i in range(4)
+                ],
+                "L_shape_3": lambda b: [
+                    [
+                        1 if (i > 0 and j == 0) or (i == 1 and j < 3) else b[i][j]
+                        for j in range(4)
+                    ]
+                    for i in range(4)
+                ],
+                "L_shape_4": lambda b: [
+                    [
+                        1 if (i > 0 and j == 3) or (i == 1 and j > 0) else b[i][j]
+                        for j in range(4)
+                    ]
+                    for i in range(4)
+                ],
             }
 
             if pattern in pattern_actions:
@@ -306,8 +335,7 @@ class CSP:
             else:
                 return block
 
-        
-        def calculate_bushes(block):
+        def BushCount(block):
             bush_counts = {
                 bush_type: sum(row.count(bush_type) for row in block)
                 for bush_type in range(1, 5)
@@ -318,11 +346,10 @@ class CSP:
             apply_pattern(block, pattern)
             for block, pattern in zip(self.TwoD_Land, self.Solution)
         ]
-        bush_counts = [calculate_bushes(block) for block in updated_land]
+        bush_counts = [BushCount(block) for block in updated_land]
 
         self.TwoD_Land = updated_land
         return bush_counts
-    
 
 
 constraint_solver = CSP()
@@ -348,7 +375,7 @@ print(problem)
 
 tile_functions = [
     getattr(constraint_solver, "L_shape_" + str(i)) for i in range(1, 5)
-] + [constraint_solver.Full_block, constraint_solver.Outer_block]
+] + [constraint_solver.Full_B, constraint_solver.Outer_B]
 
 
 constraint_solver.read_tiles_problem(file_path)
@@ -358,13 +385,8 @@ for key in [1, 2, 3, 4]:
     bush_counts[key] = 0
 
 
-
-
-result = constraint_solver.csp_with_MRV(
-    0, bush_counts, tile_functions
-)
+result = constraint_solver.CSP(0, bush_counts, tile_functions)
 constraint_solver.print_solution_tiles(constraint_solver.Solution)
 
-#printprintnt_solver.landprinter 
-#rintprintprintprint_blocks(constraint_solver.landscape_bloclandsprin
-
+# printprintnt_solver.landprinter
+# rintprintprintprint_blocks(constraint_solver.landscape_bloclandsprin
